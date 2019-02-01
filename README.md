@@ -14,6 +14,7 @@ todo:
 - [ ] video items
 - [ ] lightbox
 - [ ] custom types
+- [ ] search
 - [ ] data synchronisation between devices
 
 #### Data storage
