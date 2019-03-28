@@ -1,9 +1,9 @@
 <template>
-  <form @submit.prevent>
+  <form @submit.prevent @drop.prevent="drop">
     <div class="row">
       <!-- <div class="key">Type</div> -->
-      <select v-model="formData.type">
-        <option v-for="(type, key) in types" :value="key">{{ key }}</option>
+      <select v-model="formData.type" :disabled="!!formData.image">
+        <option v-for="(type, key) in types" :value="key" :key="key">{{ key }}</option>
       </select>
     </div>
 
@@ -42,12 +42,13 @@
         <span
           class="tag"
           v-for="(tag, index) in formData.tags"
+          :key="tag"
           @click="deleteTag(index)"
         >{{ tag }}</span>
       </div>
     </div>
 
-    <div class="row" v-for="(addable, index) in formData.addables">
+    <div class="row" v-for="(addable, index) in formData.addables" :key="`${addable.key}-${index}`">
       <div class="key">{{ addable.key }}</div>
       <input
         v-if="addables[addable.key].element === 'input'"
@@ -60,10 +61,18 @@
       ></textarea>
     </div>
 
+    <div class="row" v-if="formData.image">
+      <div class="key">Image</div>
+      <figure>
+        <img :src="image">
+        <caption>{{ formData.image }}</caption>
+      </figure>
+    </div>
+
     <div class="row">
       <div class="key">Add:</div>
       <select v-model="addable">
-        <option v-for="(type, key) in addables" :value="key">{{ key }}</option>
+        <option v-for="(type, key) in addables" :value="key" :key="key">{{ key }}</option>
       </select>
       <button @click="addAddable">Add to item</button>
     </div>
@@ -144,24 +153,49 @@
 </template>
 
 <script>
+import unfurl from 'unfurl.js';
+import callAgent from '@/call-agent';
 import types from '../types';
 
 const defaultFormData = {
   title: '',
   url: '',
   type: 'article',
+  project: '',
+  image: false,
   tags: [],
   addables: [],
 };
 
+File.prototype.toObject = function toObject() {
+  return Object({
+    lastModified: parseInt(this.lastModified, 10),
+    lastModifiedDate: String(this.lastModifiedDate, 10),
+    name: String(this.name),
+    size: parseInt(this.size, 10),
+    type: String(this.type),
+    path: String(this.path),
+  });
+};
+
 export default {
   name: 'Add',
+
+  props: {
+    visible: {
+      type: Boolean,
+      default: false,
+    },
+  },
+
   data() {
     return {
       types,
       addables: {
         note: { element: 'textarea' },
+        term: { element: 'textarea' },
         quote: { element: 'input', type: 'text' },
+        image: { element: 'image' },
       },
 
       formData: {
@@ -169,6 +203,7 @@ export default {
         url: '',
         type: 'article',
         project: '',
+        image: false,
         tags: [],
         addables: [],
       },
@@ -176,6 +211,15 @@ export default {
       tag: '',
       addable: '',
     };
+  },
+
+  computed: {
+    image() {
+      if (this.formData.image.indexOf('http') > -1) {
+        return this.formData.image;
+      }
+      return `file://${this.$store.state.media.directoryPath}/${this.formData.image}`;
+    },
   },
 
   methods: {
@@ -202,7 +246,7 @@ export default {
       this.formData.addables.push({ key: this.addable, value: '' });
     },
 
-    submit() {
+    async submit() {
       const { formData } = this;
 
       const itemKeys = Array.from(new Set(formData.addables.map(addable => addable.key)));
@@ -218,9 +262,67 @@ export default {
       delete formData.addables;
 
       const card = Object.assign(formData, items);
-      this.$store.dispatch('cards/add', card);
+      await this.$store.dispatch('cards/add', card);
 
-      this.formData = Object.assign({}, defaultFormData);
+      this.formData = Object.assign({}, this.formData, defaultFormData);
+    },
+
+    async drop(event) {
+      const files = [...event.dataTransfer.files].map(file => file.toObject());
+      const response = JSON.parse(await callAgent('addFile', JSON.stringify(files)));
+
+      response.forEach((file) => {
+        this.formData.image = file;
+      });
+
+      this.formData.type = 'image';
+    },
+  },
+
+  watch: {
+    visible() {
+      this.formData = Object.assign({}, this.formData, defaultFormData);
+    },
+
+    'formData.url': async function watcher(value) {
+      if (!value.length) return;
+      let data;
+
+      try {
+        data = await unfurl(value);
+      } catch (e) {
+        // eslint-disable-next-line
+        console.error(e);
+        return;
+      }
+
+      if (
+        !this.formData.title.length &&
+        ((data.open_graph && data.open_graph.title) || (data.title && data.title.length))
+      ) {
+        this.formData.title = (data.open_graph && data.open_graph.title) ||
+          (data.title);
+      }
+
+      if (
+        (data.open_graph && data.open_graph.description) ||
+        (data.description && data.description.length)
+      ) {
+        this.formData.addables.push({
+          key: 'note',
+          value: (data.open_graph && data.open_graph.description) || (data.description),
+        });
+      }
+
+      if (data.open_graph && data.open_graph.type && data.open_graph.type in types) {
+        this.formData.type = data.open_graph.type;
+      }
+
+      if (data.open_graph && data.open_graph.images) {
+        // eslint-disable-next-line
+        this.formData.image = data.open_graph.images[0].url;
+        this.formData.type = 'image';
+      }
     },
   },
 };
@@ -252,5 +354,24 @@ export default {
   .page-overlay .content .row .key {
     text-transform: uppercase;
     visibility: visible;
+  }
+
+  figure {
+    width: 400px;
+    margin-bottom: 10px;
+    display: inline-block;
+  }
+
+  figure img {
+    width: 100%;
+    max-width: 50px;
+    display: inline-block;
+  }
+
+  figure caption {
+    text-align: left;
+    display: inline-block;
+    font-size: var(--size-font-body);
+    color: #fff;
   }
 </style>

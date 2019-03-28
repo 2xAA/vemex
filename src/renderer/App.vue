@@ -5,8 +5,12 @@
 </template>
 
 <script>
+
   export default {
     name: 'vemex',
+    async mounted() {
+      await this.$store.dispatch('media/getDirectoryPath');
+    },
   };
 </script>
 

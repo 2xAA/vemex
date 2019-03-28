@@ -1,6 +1,5 @@
 <template>
   <div class="article-row">
-    <!-- <i title="term" class="fas fa-ribbon textIcon article-icon"></i> -->
     <icon :icon="['fas', 'ribbon']" class="textIcon article-icon" />
     <div class="article-rowtext" v-html="output"></div>
   </div>

@@ -16,6 +16,7 @@
     <div
       class="active-filters__filter"
       v-for="type in $store.state.filters.type"
+      :key="type"
       @click="removeFilter('type', type)"
     >
       <span class="active-filters__filter-text">
@@ -26,6 +27,7 @@
     <div
       class="active-filters__filter"
       v-for="tag in $store.state.filters.tag"
+      :key="tag"
       @click="removeFilter('tag', tag)"
     >
       <span class="active-filters__filter-text">
@@ -36,6 +38,7 @@
     <div
       class="active-filters__filter"
       v-for="project in $store.state.filters.project"
+      :key="project"
       @click="removeFilter('project', project)"
     >
       <span class="active-filters__filter-text">

@@ -20,6 +20,12 @@ export default {
   game: {
     icon: ['fas', 'gamepad'],
   },
+  part: {
+    icon: ['fas', 'cube'],
+  },
+  code: {
+    icon: ['fas', 'code'],
+  },
   service: {
     icon: ['fas', 'server'],
   },
@@ -46,6 +52,12 @@ export default {
   },
   note: {
     icon: ['fas', 'sticky-note'],
+  },
+  artwork: {
+    icon: ['fas', 'paint-brush'],
+  },
+  recepie: {
+    icon: ['fas', 'utensils'],
   },
   date: {
     icon: ['fas', 'clock'],

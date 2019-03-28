@@ -1,6 +1,5 @@
 <template>
   <div class="article-row note">
-    <!-- <i title="note" class="fas fa-sticky-note textIcon article-icon"></i> -->
     <icon :icon="['fas', 'sticky-note']" class="textIcon article-icon" />
     <vue-markdown class="article-rowtext">{{ itemData }}</vue-markdown>
   </div>

@@ -26,7 +26,7 @@ Vue.config.productionTip = false;
 Vue.use(VueMasonryPlugin);
 
 /* eslint-disable no-new */
-new Vue({
+export default new Vue({
   components: { App },
   router,
   store,

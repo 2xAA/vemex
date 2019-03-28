@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import callAgent from '../../call-agent';
 
 const state = [
 
@@ -8,10 +9,12 @@ const getters = {
   tags: state =>
     state.reduce((obj, item) => {
       const { tags } = item;
-      tags.forEach((tag) => {
-        if (!obj[tag]) obj[tag] = 1;
-        else obj[tag] += 1;
-      });
+      if (tags) {
+        tags.forEach((tag) => {
+          if (!obj[tag]) obj[tag] = 1;
+          else obj[tag] += 1;
+        });
+      }
 
       return obj;
     }, {}),
@@ -26,6 +29,17 @@ const getters = {
 
       return obj;
     }, {}),
+
+  projects: state =>
+    state.filter(item => item.project)
+      .reduce((obj, item) => {
+        const { project } = item;
+
+        if (!obj[project]) obj[project] = 1;
+        else obj[project] += 1;
+
+        return obj;
+      }, {}),
 };
 
 function addCard(commit, card, resolve, reject) {
@@ -52,6 +66,14 @@ const actions = {
         addCard(commit, card, resolve, reject);
       }
     });
+  },
+
+  async remove({ state, commit }, { index }) {
+    if (state[index].type === 'image') {
+      await callAgent('removeFile', state[index].image);
+    }
+
+    commit('remove', { index });
   },
 };
 
